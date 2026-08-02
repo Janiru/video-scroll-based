@@ -18,7 +18,17 @@ const CONFIG = {
   videoSrc: 'assets/video.mp4',
 
   /** Frame rate of the encoded file. Keep in sync with tools/encode.sh. */
-  videoFps: 24,
+  videoFps: 8,
+
+  /**
+   * 'progressive'  — interactive as soon as metadata lands, scrubbing over the
+   *                  network while the file downloads in the background, then
+   *                  swapped to memory mid-session. Best time-to-interactive.
+   * 'buffer-first' — download everything, then reveal. Every seek is instant
+   *                  from the first one, at the cost of staring at a loader.
+   *                  Worth it only for small files on fast connections.
+   */
+  videoStrategy: 'progressive',
 
   framePattern: 'assets/frames/frame_%04d.jpg',
   frameCount: 180,
@@ -82,7 +92,12 @@ async function createScrubber(mode) {
       video,
       src: CONFIG.videoSrc,
       fps: CONFIG.videoFps,
-      onLoadProgress: setLoadProgress,
+      strategy: CONFIG.videoStrategy,
+      freeze: createFreezeOverlay(),
+      // In progressive mode the loader is already gone by the time this fires,
+      // so buffering reports to the console rather than the UI.
+      onLoadProgress: CONFIG.videoStrategy === 'buffer-first' ? setLoadProgress : undefined,
+      onBuffered: () => console.info('[scroll-video] buffered to memory; seeks are now instant.'),
     });
   }
 
@@ -98,6 +113,41 @@ async function createScrubber(mode) {
   stage.dataset.render = 'canvas';
   setLoadProgress(1);
   return createDemoScrubber({ canvas });
+}
+
+/**
+ * Swapping the video's source makes the element go momentarily blank. This
+ * paints the last good frame onto the canvas that video mode leaves unused,
+ * shows it for the duration of the swap, and takes it away afterwards — so the
+ * upgrade from streamed to in-memory playback is invisible.
+ */
+function createFreezeOverlay() {
+  const ctx = canvas.getContext('2d', { alpha: false });
+
+  return {
+    capture(sourceVideo) {
+      if (!sourceVideo.videoWidth) return;
+      // Reveal before measuring: video mode leaves the canvas display:none,
+      // and a hidden element reports zero size. Nothing repaints between this
+      // line and the drawImage below, so no blank frame escapes.
+      stage.dataset.freeze = 'true';
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(canvas.clientWidth * dpr);
+      canvas.height = Math.round(canvas.clientHeight * dpr);
+
+      const scale = Math.max(
+        canvas.width / sourceVideo.videoWidth,
+        canvas.height / sourceVideo.videoHeight
+      );
+      const w = sourceVideo.videoWidth * scale;
+      const h = sourceVideo.videoHeight * scale;
+      ctx.drawImage(sourceVideo, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+    },
+    release() {
+      delete stage.dataset.freeze;
+    },
+  };
 }
 
 /**

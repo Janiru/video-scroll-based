@@ -18,7 +18,16 @@
          sequence play out over more or less scrolling. -->
     <section class="track" data-track>
       <div class="stage" data-stage>
-        <video class="stage__media" data-video muted playsinline preload="auto"></video>
+        <!-- The poster paints before any video data is decoded, so the stage is
+             never empty. src is set from JS, which owns the load strategy. -->
+        <video
+          class="stage__media"
+          data-video
+          muted
+          playsinline
+          preload="metadata"
+          poster="assets/poster.jpg"
+        ></video>
         <canvas class="stage__media" data-canvas></canvas>
         <div class="stage__vignette"></div>
 
@@ -29,8 +38,8 @@
           </article>
 
           <article class="caption" data-in="0.24" data-out="0.5">
-            <h2>Buffered, then scrubbed</h2>
-            <p>The file is pulled into memory before the first seek, so nothing waits on the network mid-scroll.</p>
+            <h2>Interactive in a kilobyte</h2>
+            <p>Scrubbing starts as soon as the metadata lands. The rest of the file arrives behind you and swaps in unseen.</p>
           </article>
 
           <article class="caption" data-in="0.52" data-out="0.78">

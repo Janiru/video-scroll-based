@@ -4,12 +4,14 @@ A pinned video whose playhead is bound to the scrollbar. No dependencies — no
 jQuery, no GSAP, no ScrollTrigger.
 
 ```bash
-python3 -m http.server 8123
+./tools/serve.py
 # open http://localhost:8123
 ```
 
-A server is required: the page loads ES modules and fetches the video, and both
-are blocked on `file://`.
+Use that server rather than `python3 -m http.server`: the stdlib one does not
+implement HTTP Range requests, and seeking a streamed video needs them. Every
+real static host (GitHub Pages, Netlify, S3, nginx) supports ranges, so this is
+a dev-only gap.
 
 With no footage in place it runs a procedural canvas ("demo mode") so you can
 feel the scroll behaviour immediately.
@@ -26,8 +28,16 @@ argument to your source rather than resampling, and set `videoFps` in
 [js/main.js](js/main.js) to the same number — the scrubber uses it to discard
 seek requests that would land on the frame already showing.
 
-The committed `assets/video.mp4` was built from a 3840×2160 24fps source with
-exactly that command: 192 frames, 192 keyframes, no audio, 14.6 MB.
+If your source is already all-intra, skip the encode — re-compressing only costs
+you a generation of quality. Check with:
+
+```bash
+ffprobe -v error -select_streams v:0 -show_entries frame=key_frame \
+  -of csv=p=0 your.mp4 | sort | uniq -c
+```
+
+The committed `assets/video.mp4` is such a file: 1920×1080, 66 frames, 66
+keyframes, no audio, 8 fps, 6.6 MB, used as delivered.
 
 **Do not skip the encode step.** It is the single biggest factor in how this
 feels, bigger than any JavaScript in here. A normal export places a keyframe
@@ -40,14 +50,47 @@ Guidelines that matter more than they look:
 
 | Knob | Aim for | Why |
 | --- | --- | --- |
-| Duration | 5–15s | The entire file is held in memory. |
-| File size | under ~30 MB | It downloads fully before the first frame shows. |
-| Frame rate | 24–30fps | Scrubbing rarely resolves more; 60fps doubles the size for nothing. |
+| Duration | 5–15s | The whole file ends up held in memory. |
+| File size | under ~15 MB | It downloads in the background; smaller means memory-speed sooner. |
+| Frame rate | 24–30fps | Below ~15fps the stepping is visible under a slow scroll; above 30 you pay bytes for detail scrubbing cannot resolve. |
 | Width | 1280–1920 | Scaled to `cover` anyway. |
 | Audio | none | Stripped by the encoder; it can never play here. |
 
 Shoot or cut for it: locked-off camera, slow continuous motion, no hard cuts.
 Cuts read as glitches when the viewer controls the speed.
+
+## Loading
+
+`videoStrategy` in [js/main.js](js/main.js):
+
+- **`progressive`** (default) — the page is interactive as soon as the metadata
+  arrives, which for a faststart file is the first ~1 KB rather than the whole
+  download. Scrubbing runs over the network via range requests while the full
+  file is fetched in the background, then the source is swapped to an in-memory
+  copy mid-session. The swap holds the current frame on a canvas so it does not
+  flash.
+- **`buffer-first`** — download everything, then reveal. Every seek is instant
+  from the very first one, at the cost of a loading bar. Reasonable only for
+  small files.
+
+Progressive costs a little bandwidth: the media element's range requests overlap
+the background fetch. `Cache-Control` on the dev server (and on any sane host)
+keeps that overlap small.
+
+## Frame count sets the ceiling
+
+Smoothness is bounded by how many distinct frames exist. Easing cannot invent
+picture that is not in the file — it only controls how the playhead travels
+between frames that are.
+
+Divide `--scroll-length` by the frame count to see what you are asking for. The
+committed video has 66 frames over `400vh`, so a new frame lands every ~6vh of
+scroll. That reads as smooth at a normal scroll speed and slightly stepped if
+you drag the scrollbar slowly. Lengthening `--scroll-length` makes this *worse*,
+not better — it spreads the same frames over more pixels.
+
+If you want it perfectly fluid, re-export the source at 24fps and the ceiling
+rises with the frame count.
 
 ## The two failure modes this avoids
 
@@ -72,10 +115,12 @@ Top of [js/main.js](js/main.js):
   if the file is missing.
 - `smoothing` — `0.06` heavy and cinematic, `0.12` default, `0.25` tight and
   responsive.
+- `videoFps` — must match the encoded rate (currently `8`).
+- `videoStrategy` — `'progressive'` or `'buffer-first'`, see above.
 
 Top of [css/style.css](css/style.css):
 
-- `--scroll-length` — how much scrolling the sequence is spread across (`600vh`).
+- `--scroll-length` — how much scrolling the sequence is spread across (`400vh`).
   This is the pacing control; the video duration is not.
 
 ## Frame-sequence mode
@@ -109,7 +154,10 @@ frame, so text never drifts behind the footage.
 - iOS needs one user touch before a video will paint a frame. Handled with a
   silent play/pause on first `touchstart`, but the very first frame can appear a
   moment late on iOS if the user scrolls without touching.
-- Memory scales with file size, since the video is buffered as a blob. This is
-  the deliberate trade for instant seeks — respect the size budget above.
+- Memory scales with file size, since the video ends up buffered as a blob. This
+  is the deliberate trade for instant seeks — respect the size budget above.
+- In progressive mode the first few seconds scrub over the network, so seeks are
+  slower until the background download finishes. On a slow connection that
+  window is longer.
 - `prefers-reduced-motion` disables the easing and applies scroll position
   directly.
