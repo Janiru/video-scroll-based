@@ -1,10 +1,7 @@
 :root {
-  /* Total scroll distance the sequence is spread across.
-     Counter-intuitively, LONGER is not smoother: it stretches the same frame
-     count over more pixels, so each frame is held for longer and the stepping
-     becomes visible. Divide this by the frame count to sanity-check it —
-     assets/video.mp4 has 66 frames, so 400vh means a new frame every ~6vh. */
-  --scroll-length: 400vh;
+  /* Total scroll distance the sequence is spread across. Longer = slower,
+     more deliberate playback for the same footage. 400–700vh feels right. */
+  --scroll-length: 600vh;
   --ink: #f4f4f5;
   --muted: #a1a1aa;
   --accent: #7dd3fc;
@@ -131,13 +128,6 @@ body[data-ready='true'] {
   display: block;
 }
 
-/* Held frame shown over the video while its source is swapped from the
-   streamed file to the in-memory one. The canvas sits after the video in the
-   DOM, so it paints on top without needing a z-index. */
-.stage[data-freeze='true'] canvas.stage__media {
-  display: block;
-}
-
 .stage__vignette {
   position: absolute;
   inset: 0;
@@ -197,11 +187,9 @@ body[data-ready='true'] {
 
 .hint {
   position: absolute;
-  /* Centred by the grid, not by translateX — JS owns `transform` on every
-     [data-in] element and would overwrite a centring translate. */
-  left: 0;
-  right: 0;
+  left: 50%;
   bottom: 2.25rem;
+  transform: translateX(-50%);
   display: grid;
   justify-items: center;
   gap: 0.65rem;
