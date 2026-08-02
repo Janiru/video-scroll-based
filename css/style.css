@@ -1,0 +1,239 @@
+:root {
+  /* Total scroll distance the sequence is spread across. Longer = slower,
+     more deliberate playback for the same footage. 400–700vh feels right. */
+  --scroll-length: 600vh;
+  --ink: #f4f4f5;
+  --muted: #a1a1aa;
+  --accent: #7dd3fc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* Deliberately NOT scroll-behavior: smooth — that fights the easing in
+     progress-engine.js and produces a double-lag. */
+  background: #050505;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: #050505;
+  font-family: ui-sans-serif, -apple-system, 'Segoe UI', Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+body[data-ready='true'] {
+  opacity: 1;
+}
+
+/* ---------- loader ---------- */
+
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-content: center;
+  gap: 1rem;
+  background: #050505;
+  transition: opacity 0.6s ease;
+}
+
+.loader[data-done='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loader__bar {
+  width: min(260px, 60vw);
+  height: 2px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.loader__bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s linear;
+}
+
+.loader__text {
+  margin: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- progress bar ---------- */
+
+.progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* ---------- pinned stage ---------- */
+
+.track {
+  position: relative;
+  height: var(--scroll-length);
+}
+
+.stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  background: #050505;
+}
+
+.stage__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+  /* Promote to its own layer so repainting a scrubbed frame never reflows the
+     captions sitting on top of it. */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.stage[data-render='video'] video.stage__media,
+.stage[data-render='canvas'] canvas.stage__media {
+  display: block;
+}
+
+.stage__vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(5, 5, 5, 0.85), transparent 45%),
+    radial-gradient(120% 90% at 50% 40%, transparent 40%, rgba(5, 5, 5, 0.7));
+}
+
+/* ---------- captions ---------- */
+
+.captions {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  pointer-events: none;
+}
+
+.caption {
+  grid-area: 1 / 1;
+  max-width: 46rem;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  /* Position and fade come from JS on every frame; no CSS transition here or
+     the two interpolations would stack. */
+  will-change: transform, opacity;
+}
+
+.caption h1,
+.caption h2 {
+  margin: 0 0 1rem;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.caption h1 {
+  font-size: clamp(2.5rem, 7vw, 5.5rem);
+}
+
+.caption h2 {
+  font-size: clamp(1.9rem, 4.5vw, 3.25rem);
+}
+
+.caption p {
+  margin: 0 auto;
+  max-width: 34rem;
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  line-height: 1.6;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: 2.25rem;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 0.65rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hint__line {
+  width: 1px;
+  height: 42px;
+  background: linear-gradient(to bottom, transparent, var(--muted));
+}
+
+/* ---------- after the stage ---------- */
+
+.outro {
+  min-height: 60vh;
+  display: grid;
+  align-content: center;
+  gap: 1rem;
+  padding: 6rem 2rem;
+  max-width: 46rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.outro h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3.5vw, 2.5rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.outro p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body,
+  .loader {
+    transition: none;
+  }
+}

@@ -1,0 +1,10 @@
+.DS_Store
+*.log
+node_modules/
+
+# Source footage stays local — commit only the encoded assets/video.mp4.
+# (Media under assets/ IS tracked; if your encode exceeds ~50 MB, use Git LFS.)
+*.mov
+*.MOV
+*.mkv
+*.ProRes.mp4

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scroll-driven video</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="loader" data-loader>
+      <div class="loader__bar"><span data-loader-bar></span></div>
+      <p class="loader__text"><span data-loader-text>0%</span> loaded</p>
+    </div>
+
+    <div class="progress"><span data-progress-bar></span></div>
+
+    <!-- The track owns the scroll distance. Change --scroll-length to make the
+         sequence play out over more or less scrolling. -->
+    <section class="track" data-track>
+      <div class="stage" data-stage>
+        <video class="stage__media" data-video muted playsinline preload="auto"></video>
+        <canvas class="stage__media" data-canvas></canvas>
+        <div class="stage__vignette"></div>
+
+        <div class="captions">
+          <article class="caption" data-in="0" data-out="0.22">
+            <h1>Every frame,<br />under your thumb.</h1>
+            <p>Scroll to play. The footage is bound to the scrollbar, not to a clock.</p>
+          </article>
+
+          <article class="caption" data-in="0.24" data-out="0.5">
+            <h2>Buffered, then scrubbed</h2>
+            <p>The file is pulled into memory before the first seek, so nothing waits on the network mid-scroll.</p>
+          </article>
+
+          <article class="caption" data-in="0.52" data-out="0.78">
+            <h2>One seek at a time</h2>
+            <p>Requests are coalesced against the decoder instead of queued against it. That is the whole trick.</p>
+          </article>
+
+          <article class="caption" data-in="0.8" data-out="1.001">
+            <h2>Keep scrolling</h2>
+            <p>Motion eases toward the scroll position rather than snapping to it.</p>
+          </article>
+        </div>
+
+        <div class="hint" data-in="0" data-out="0.1">
+          <span class="hint__line"></span>
+          scroll
+        </div>
+      </div>
+    </section>
+
+    <footer class="outro">
+      <h2>Normal page resumes here.</h2>
+      <p>
+        The pinned stage releases as soon as the track scrolls past, so the rest of the
+        site behaves like any other document.
+      </p>
+    </footer>
+
+    <script type="module" src="js/main.js"></script>
+    <script>
+      // Safety net: the page starts hidden so it can never flash an unstyled,
+      // unscrubbed first frame. If the module never boots, reveal it anyway
+      // rather than leaving a black screen.
+      setTimeout(() => {
+        document.body.dataset.ready = 'true';
+        const el = document.querySelector('[data-loader]');
+        if (el) el.dataset.done = 'true';
+      }, 6000);
+    </script>
+  </body>
+</html>
