@@ -17,10 +17,17 @@ feel the scroll behaviour immediately.
 ## Adding your video
 
 ```bash
-./tools/encode.sh path/to/your-footage.mov
+./tools/encode.sh path/to/your-footage.mov 1920 24 22
+#                                          width fps crf
 ```
 
-That writes `assets/video.mp4` and the page picks it up on reload.
+That writes `assets/video.mp4` and the page picks it up on reload. Match the fps
+argument to your source rather than resampling, and set `videoFps` in
+[js/main.js](js/main.js) to the same number — the scrubber uses it to discard
+seek requests that would land on the frame already showing.
+
+The committed `assets/video.mp4` was built from a 3840×2160 24fps source with
+exactly that command: 192 frames, 192 keyframes, no audio, 14.6 MB.
 
 **Do not skip the encode step.** It is the single biggest factor in how this
 feels, bigger than any JavaScript in here. A normal export places a keyframe

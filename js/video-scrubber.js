@@ -12,7 +12,7 @@
  *    previous seek reports back.
  */
 
-export async function createVideoScrubber({ video, src, onLoadProgress }) {
+export async function createVideoScrubber({ video, src, fps = 30, onLoadProgress }) {
   video.muted = true;
   video.defaultMuted = true;
   video.playsInline = true;
@@ -43,7 +43,10 @@ export async function createVideoScrubber({ video, src, onLoadProgress }) {
   await once(video, 'seeked').catch(() => {});
 
   const duration = Number.isFinite(video.duration) ? video.duration : 1;
-  const frameStep = 1 / 30; // Ignore sub-frame requests; they cost a seek for nothing.
+  // Ignore sub-frame requests; they cost a seek and show the same picture.
+  // Must match the encoded rate — guessing high wastes seeks, guessing low
+  // drops frames the file actually has.
+  const frameStep = 1 / fps;
 
   let seeking = false;
   let queued = null;

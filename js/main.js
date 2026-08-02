@@ -17,6 +17,9 @@ const CONFIG = {
 
   videoSrc: 'assets/video.mp4',
 
+  /** Frame rate of the encoded file. Keep in sync with tools/encode.sh. */
+  videoFps: 24,
+
   framePattern: 'assets/frames/frame_%04d.jpg',
   frameCount: 180,
 
@@ -78,6 +81,7 @@ async function createScrubber(mode) {
     return createVideoScrubber({
       video,
       src: CONFIG.videoSrc,
+      fps: CONFIG.videoFps,
       onLoadProgress: setLoadProgress,
     });
   }
